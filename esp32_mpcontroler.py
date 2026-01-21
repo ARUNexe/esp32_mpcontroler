@@ -3,58 +3,34 @@ import uasyncio as asyncio
 import struct
 import hashlib
 import binascii
-import time
-from machine import Pin, PWM
+from machine import Pin
 
-# ================= LED =================
+
+class MPCKeys:
+    # ---------- FACE BUTTONS ----------
+    LFT = "BTN_LFT"
+    RGT = "BTN_RGT"
+    FWD = "BTN_FWD"
+    BWD = "BTN_BWD"
+
+    # ---------- INDICATOR ----------
+    IND_R = "IND_R"
+    IND_L = "IND_L"
+    IND_LR = "IND_LR"
+
+    # ---------- MISSALANIOUS ----------
+    LIGHT = "BTN_LIGHT"
+    HORN = "BTN_HORN"
+
+    LB1 = "BTN_LB1"
+    LB2 = "BTN_LB2"
+    LB3 = "BTN_LB3"
+    LB4 = "BTN_LB4"
+
+
+# LED indicating that esp32 is on
 led = Pin(2, Pin.OUT)
 led.on()
-
-# ================= SERVO =================
-servo = PWM(Pin(18), freq=50)
-
-SERVO_MIN_US = 700
-SERVO_MAX_US = 2300
-
-LEFT_POS   = 45
-CENTER_POS = 90
-RIGHT_POS  = 135
-
-STEP_DEG = 3
-STEP_DELAY_MS = 20
-SERVO_IDLE_TIMEOUT = 1.2
-
-current_angle = CENTER_POS
-target_angle = CENTER_POS
-last_move_time = time.time()
-servo_active = False
-
-def angle_to_duty(angle):
-    angle = max(LEFT_POS, min(RIGHT_POS, angle))
-    us = SERVO_MIN_US + (SERVO_MAX_US - SERVO_MIN_US) * \
-         (angle - LEFT_POS) / (RIGHT_POS - LEFT_POS)
-    return int(us * 1023 / 20000)
-
-def servo_write(angle):
-    global servo_active
-    servo.duty(angle_to_duty(angle))
-    servo_active = True
-
-def servo_off():
-    global servo_active
-    servo.duty(0)
-    servo_active = False
-
-servo_write(CENTER_POS)
-
-# ================= INDICATOR LEDS =================
-ind_left = Pin(16, Pin.OUT)
-ind_right = Pin(17, Pin.OUT)
-
-ind_left.off()
-ind_right.off()
-
-indicator_task = None
 
 # ================= WIFI AP =================
 ap = network.WLAN(network.AP_IF)
@@ -70,18 +46,18 @@ while not ap.active():
 
 print("AP IP:", ap.ifconfig()[0])
 
-HTML = """<!DOCTYPE html>
+HTML = f"""<!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>ESP32 RC</title>
 <style>
-* {
+* {{
   box-sizing: border-box;
   touch-action: none;
   user-select: none;
-}
-html, body {
+}}
+html, body {{
   margin: 0;
   padding: 0;
   width: 100%;
@@ -89,24 +65,24 @@ html, body {
   background: #000;
   overflow: hidden;
   font-family: sans-serif;
-}
+}}
 
-.app {
+.app {{
   height: 100svh;
   display: flex;
   flex-direction: column;
-}
+}}
 
 /* ---------- TOP BAR ---------- */
-.top {
+.top {{
   flex: 0 0 auto;
   display: flex;
   justify-content: center;
   gap: 10px;
   padding: 8px;
-}
+}}
 
-.top button {
+.top button {{
   flex: 1;
   max-width: 120px;
   height: 48px;
@@ -114,75 +90,75 @@ html, body {
   background: #444;
   color: #fff;
   border: 2px solid #888;
-}
+}}
 
 /* ---------- MAIN AREA ---------- */
-.main {
+.main {{
   flex: 1;
   display: flex;
-}
+}}
 
 /* ---------- COLUMNS ---------- */
-.column {
+.column {{
   flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-}
+}}
 
-.label {
+.label {{
   color: #aaa;
   margin-bottom: 10px;
   font-size: 16px;
-}
+}}
 
 /* ---------- BUTTONS ---------- */
-.pad {
+.pad {{
   display: flex;
   gap: 12px;
-}
+}}
 
-.big {
+.big {{
   width: min(30vw, 120px);
   height: min(30vw, 120px);
   font-size: 42px;
   background: #222;
   border-radius: 12px;
-}
+}}
 
-.steer {
+.steer {{
   color: #0af;
   border: 3px solid #0af;
-}
+}}
 
-.motor-fwd {
+.motor-fwd {{
   color: #0f0;
   border: 3px solid #f80;
-}
+}}
 
-.motor-back {
+.motor-back {{
   color: #f80;
   border: 3px solid #f80;
-}
+}}
 
-.motor-stop {
+.motor-stop {{
   color: #f00;
   border: 3px solid #f00;
-}
+}}
 
-button:active {
+button:active {{
   transform: scale(0.95);
   background: #555;
-}
+}}
 
-.indicators {
+.indicators {{
   display: flex;
   gap: 8px;
   margin-bottom: 12px;
-}
+}}
 
-.indicators button {
+.indicators button {{
   width: 48px;
   height: 36px;
   font-size: 18px;
@@ -190,7 +166,7 @@ button:active {
   color: #ff0;
   border: 2px solid #ff0;
   border-radius: 6px;
-}
+}}
 </style>
 </head>
 
@@ -199,34 +175,33 @@ button:active {
 
   <!-- TOP CONTROLS -->
   <div class="top">
-    <button id="light">LIGHT</button>
-    <button id="horn">HORN</button>
+    <button id="btn_{MPCKeys.LIGHT}">LIGHT</button>
+    <button id="btn_{MPCKeys.HORN}">HORN</button>
   </div>
 
   <!-- MAIN CONTROLS -->
   <div class="main">
 
-    <!-- STEERING -->
-    
-    <!-- INDICATORS -->
     <div class="column">
 
+      <!-- INDICATOR -->
       <div class="indicators">
-        <button id="ind_left">◀</button>
-        <button id="ind_both">◀▶</button>
-        <button id="ind_right">▶</button>
+        <button id="btn_{MPCKeys.IND_L}">◀</button>
+        <button id="btn_{MPCKeys.IND_LR}">◀▶</button>
+        <button id="btn_{MPCKeys.IND_R}">▶</button>
       </div>
+      <!-- LEFT PAD -->
       <div class="pad">
-        <button id="left" class="big steer">←</button>
-        <button id="right" class="big steer">→</button>
+        <button id="btn_{MPCKeys.LFT}" class="big steer">←</button>
+        <button id="btn_{MPCKeys.RGT}" class="big steer">→</button>
       </div>
     </div>
 
-    <!-- MOTOR -->
+    <!-- RIGHT PAD -->
     <div class="column">
       <div class="pad">
-        <button id="forward" class="big motor-fwd">▲</button>
-        <button id="back" class="big motor-back">▼</button>
+        <button id="btn_{MPCKeys.FWD}" class="big motor-fwd">▲</button>
+        <button id="btn_{MPCKeys.BWD}" class="big motor-back">▼</button>
       </div>
     </div>
 
@@ -235,27 +210,38 @@ button:active {
 
 <script>
 let ws = new WebSocket("ws://192.168.4.1/ws");
+const KEYS = {{
+  LFT: "{MPCKeys.LFT}",
+  RGT: "{MPCKeys.RGT}",
+  FWD: "{MPCKeys.FWD}",
+  BWD: "{MPCKeys.BWD}",
+  IND_L: "{MPCKeys.IND_L}",
+  IND_R: "{MPCKeys.IND_R}",
+  IND_LR: "{MPCKeys.IND_LR}",
+  LIGHT: "{MPCKeys.LIGHT}",
+  HORN: "{MPCKeys.HORN}",
+}};
 
-function send(m){ if(ws.readyState===1) ws.send(m); }
+function send(m){{ if(ws.readyState===1) ws.send(m); }}
 
-function bind(id, press, release=null){
+function bind(id, key){{
   let b=document.getElementById(id);
-  b.ontouchstart=e=>{e.preventDefault();send(press);}
-  b.ontouchend=e=>{e.preventDefault();if(release)send(release);}
-  b.onmousedown=()=>send(press);
-  b.onmouseup=()=>{if(release)send(release);}
-  b.onmouseleave=()=>{if(release)send(release);}
-}
+  b.ontouchstart=e=>{{e.preventDefault();send(key + ":pressed");}}
+  b.ontouchend=e=>{{e.preventDefault();if(key)send(key + ":released");}}
+  b.onmousedown=()=>send(key + ":pressed");
+  b.onmouseup=()=>{{if(key)send(key + ":released");}}
+  b.onmouseleave=()=>{{if(key)send(key + ":released");}}
+}}
 
-bind("left","LEFT","CENTER");
-bind("right","RIGHT","CENTER");
-bind("forward","FORWARD","STOP");
-bind("back","BACK","STOP");
-bind("light","LIGHT");
-bind("horn","HORN");
-bind("ind_left","IND_LEFT");
-bind("ind_right","IND_RIGHT");
-bind("ind_both","IND_BOTH");
+bind("btn_" + KEYS.LFT, KEYS.LFT);
+bind("btn_" + KEYS.RGT, KEYS.RGT);
+bind("btn_" + KEYS.FWD, KEYS.FWD);
+bind("btn_" + KEYS.BWD, KEYS.BWD);
+bind("btn_" + KEYS.LIGHT, KEYS.LIGHT);
+bind("btn_" + KEYS.HORN, KEYS.HORN);
+bind("btn_" + KEYS.IND_L, KEYS.IND_L);
+bind("btn_" + KEYS.IND_R, KEYS.IND_R);
+bind("btn_" + KEYS.IND_LR, KEYS.IND_LR);
 </script>
 </body>
 </html>
@@ -279,117 +265,121 @@ async def ws_recv(reader):
         data[i] ^= mask[i % 4]
     return data.decode()
 
-# ================= SERVO TASK =================
-async def servo_task():
-    global current_angle, last_move_time
-    while True:
-        if current_angle != target_angle:
-            last_move_time = time.time()
-            current_angle += STEP_DEG if current_angle < target_angle else -STEP_DEG
-            servo_write(current_angle)
-        else:
-            if servo_active and time.time() - last_move_time > SERVO_IDLE_TIMEOUT:
-                servo_off()
-        await asyncio.sleep_ms(STEP_DELAY_MS)
 
-# ================= INDICATOR TASK =================
+class _ButtonState:
+    def __init__(self):
+        self.down = False
+        self.pressed = False
+        self.released = False
 
-async def blink_indicator(left=False, right=False, duration=5):
-    end_time = time.time() + duration
-    state = False
-    while time.time() < end_time:
-        state = not state
-        if left:
-            ind_left.value(state)
-        if right:
-            ind_right.value(state)
-        await asyncio.sleep_ms(400)
 
-    # turn OFF after timeout
-    ind_left.off()
-    ind_right.off()
+class Input:
+    def __init__(self):
+        self._buttons = {}
+        self._axes = {}
 
-def start_indicator(left=False, right=False, duration=5):
-    global indicator_task
-    if indicator_task:
-        indicator_task.cancel()
-    ind_left.off()
-    ind_right.off()
-    indicator_task = asyncio.create_task(
-        blink_indicator(left, right, duration)
-    )
+    def _btn(self, code):
+        if code not in self._buttons:
+            self._buttons[code] = _ButtonState()
+        return self._buttons[code]
 
-# ================= SERVER =================
-async def handle_client(reader, writer):
-    global target_angle
-    try:
-        req = await reader.readline()
-        is_ws = b"GET /ws" in req
+    # called by remote / ws / radio 
+    def emit_button(self, code, value):
+        b = self._btn(code)
+        b.pressed  = value and not b.down
+        b.released = (not value) and b.down
+        b.down = bool(value)
 
-        headers = {}
-        while True:
-            line = await reader.readline()
-            if line == b"\r\n":
-                break
-            k, v = line.decode().split(":", 1)
-            headers[k.strip()] = v.strip()
 
-        if is_ws:
-            accept = ws_accept(headers["Sec-WebSocket-Key"])
-            await writer.awrite(
-                "HTTP/1.1 101 Switching Protocols\r\n"
-                "Upgrade: websocket\r\n"
-                "Connection: Upgrade\r\n"
-                f"Sec-WebSocket-Accept: {accept}\r\n\r\n"
-            )
+    
 
+    # ---- user polling API ----
+    def is_down(self, code):
+        return self._btn(code).down
+
+    def is_pressed(self, code):
+        return self._btn(code).pressed
+
+    def is_released(self, code):
+        return self._btn(code).released
+
+    #resets pressed and released keys
+    def end_frame(self):
+        for b in self._buttons.values():
+            b.pressed = False
+            b.released = False
+
+
+class RemoteController:
+    def __init__(self, port=80):
+        self.port = port
+        self.input = Input()
+        self.server = None
+        
+    async def start(self):
+        """Start the WebSocket server"""
+        self.server = await asyncio.start_server(
+            self._handle_client, "0.0.0.0", self.port
+        )
+        print(f"Server started on port {self.port}")
+        await self.server.wait_closed()
+    
+    async def _handle_client(self, reader, writer):
+        try:
+            req = await reader.readline()
+            is_ws = b"GET /ws" in req
+
+            headers = {}
             while True:
-                msg = await ws_recv(reader)
-                print("Received:", msg)  # Debug print
-                if msg == "LEFT":
-                    target_angle = LEFT_POS
-                elif msg == "RIGHT":
-                    target_angle = RIGHT_POS
-                elif msg == "CENTER":
-                    target_angle = CENTER_POS
-                # Filler buttons - add your logic here
-                elif msg == "FORWARD":
-                    print("Forward pressed")
-                elif msg == "BACK":
-                    print("Back pressed")
-                elif msg == "STOP":
-                    print("Stop pressed")
-                elif msg == "LIGHT":
-                    print("Light pressed")
-                elif msg == "HORN":
-                    print("Horn pressed")
-                elif msg == "TURBO":
-                    print("Turbo pressed")
-                elif msg == "IND_LEFT":
-                    print("Left indicator pressed")
-                    start_indicator(left=True, duration=5)
-                elif msg == "IND_RIGHT":
-                    print("Right indicator pressed")
-                    start_indicator(right=True, duration=5)
-                elif msg == "IND_BOTH":
-                    print("Both indicator pressed")
-                    start_indicator(left=True, right=True, duration=6)
-        else:
-            await writer.awrite(
-                "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n"
-            )
-            await writer.awrite(HTML)
+                line = await reader.readline()
+                if line == b"\r\n":
+                    break
+                k, v = line.decode().split(":", 1)
+                headers[k.strip()] = v.strip()
 
-    except:
-        pass
-    finally:
-        await writer.aclose()
+            if is_ws:
+                accept = ws_accept(headers["Sec-WebSocket-Key"])
+                await writer.awrite(
+                    "HTTP/1.1 101 Switching Protocols\r\n"
+                    "Upgrade: websocket\r\n"
+                    "Connection: Upgrade\r\n"
+                    f"Sec-WebSocket-Accept: {accept}\r\n\r\n"
+                )
 
-# ================= MAIN =================
-async def main():
-    asyncio.create_task(servo_task())
-    server = await asyncio.start_server(handle_client, "0.0.0.0", 80)
-    print("Server running")
-    await server.wait_closed()
+                while True:
+                    msg = await ws_recv(reader)
+                    print("Received:", msg)
+                    
+                    # Parse key and state
+                    if ":" in msg:
+                        key, state = msg.split(":")
+                    else:
+                        key = msg
+                        state = "pressed"
+                    
+                    # Update input state
+                    value = 1 if state == "pressed" else 0
+                    self.input.emit_button(key, value)
+                    
+            else:
+                await writer.awrite(
+                    "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n"
+                )
+                await writer.awrite(HTML)
 
-asyncio.run(main())
+        except:
+            pass
+        finally:
+            await writer.aclose()
+    
+    def update(self):
+        self.input.end_frame()
+    
+    def is_pressed(self, key):
+        return self.input.is_pressed(key)
+    
+    def is_released(self, key):
+        return self.input.is_released(key)
+    
+    def is_down(self, key):
+        return self.input.is_down(key)
