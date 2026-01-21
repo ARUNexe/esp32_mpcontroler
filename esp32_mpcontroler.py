@@ -51,121 +51,197 @@ HTML = f"""<!DOCTYPE html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>ESP32 RC</title>
+
 <style>
+:root {{
+  --bg: #0b0e14;
+  --panel: #121826;
+  --btn: #1a2133;
+  --accent: #4cc9f0;
+  --warn: #f4a261;
+  --text: #e5e7eb;
+  --border: #2a3558;
+}}
+
 * {{
   box-sizing: border-box;
   touch-action: none;
   user-select: none;
 }}
+
 html, body {{
   margin: 0;
-  padding: 0;
   width: 100%;
   height: 100%;
-  background: #000;
-  overflow: hidden;
-  font-family: sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, sans-serif;
 }}
 
 .app {{
   height: 100svh;
   display: flex;
   flex-direction: column;
+  margin: 20px;
+  margin-top: 40px;
+  margin-bottom: 40px;
 }}
 
 /* ---------- TOP BAR ---------- */
 .top {{
-  flex: 0 0 auto;
   display: flex;
-  justify-content: center;
-  gap: 10px;
-  padding: 8px;
+  gap: 12px;
+  padding: 12px 16px;
 }}
 
 .top button {{
   flex: 1;
-  max-width: 120px;
-  height: 48px;
-  font-size: 14px;
-  background: #444;
-  color: #fff;
-  border: 2px solid #888;
+  height: 44px;
+  background: var(--btn);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 600;
+  border-radius: 10px;
 }}
 
-/* ---------- MAIN AREA ---------- */
+/* ---------- MAIN ---------- */
 .main {{
   flex: 1;
   display: flex;
+  justify-content: space-between;
+  padding: 16px;
+  gap: 16px;
 }}
 
-/* ---------- COLUMNS ---------- */
-.column {{
-  flex: 1;
+/* ---------- PANELS ---------- */
+.panel {{
+  background: var(--panel);
+  border-radius: 16px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-end;
+}}
+
+/* ---------- LEFT (STEERING) ---------- */
+.left {{
+  width: 35%;
   align-items: center;
 }}
 
-.label {{
-  color: #aaa;
-  margin-bottom: 10px;
-  font-size: 16px;
-}}
-
-/* ---------- BUTTONS ---------- */
-.pad {{
+.indicator {{
   display: flex;
-  gap: 12px;
+  gap: 8px;
 }}
 
-.big {{
-  width: min(30vw, 120px);
-  height: min(30vw, 120px);
-  font-size: 42px;
-  background: #222;
-  border-radius: 12px;
+.indicator button {{
+  width: 48px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
 }}
 
 .steer {{
-  color: #0af;
-  border: 3px solid #0af;
-}}
-
-.motor-fwd {{
-  color: #0f0;
-  border: 3px solid #f80;
-}}
-
-.motor-back {{
-  color: #f80;
-  border: 3px solid #f80;
-}}
-
-.motor-stop {{
-  color: #f00;
-  border: 3px solid #f00;
-}}
-
-button:active {{
-  transform: scale(0.95);
-  background: #555;
-}}
-
-.indicators {{
   display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 14px;
+  padding: 16px;
 }}
 
-.indicators button {{
-  width: 48px;
-  height: 36px;
-  font-size: 18px;
-  background: #111;
-  color: #ff0;
-  border: 2px solid #ff0;
-  border-radius: 6px;
+.big {{
+  width: 80px;
+  height: 80px;
+  font-size: 34px;
+  border-radius: 14px;
+  border: 2px solid var(--accent);
+  background: var(--btn);
+  color: var(--accent);
+}}
+
+/* ---------- CENTER ---------- */
+.center {{
+  width: 30%;
+  align-items: center;
+}}
+
+.buttons {{
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}}
+
+.circle {{
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--btn);
+  color: var(--accent);
+  font-weight: 600;
+}}
+
+.motor {{
+  display: flex;
+  gap: 14px;
+  padding: 16px;
+}}
+
+.motor button {{
+  width: 80px;
+  height: 80px;
+  font-size: 32px;
+  border-radius: 14px;
+  border: 2px solid var(--warn);
+  background: var(--btn);
+  color: var(--warn);
+}}
+
+/* ---------- INTERACTION ---------- */
+button:active {{
+  transform: scale(0.94);
+  background: #222b44;
+}}
+
+button.pressed {{
+  box-shadow: 0 0 12px currentColor;
+  background: #2a3a5a;
+}}
+
+.big.pressed {{
+  background: rgba(76, 201, 240, 0.15);
+  box-shadow: inset 0 0 8px rgba(76, 201, 240, 0.3), 0 0 16px rgba(76, 201, 240, 0.4);
+}}
+
+.circle.pressed {{
+  background: rgba(76, 201, 240, 0.15);
+  box-shadow: 0 0 12px rgba(76, 201, 240, 0.6);
+}}
+
+.motor button.pressed {{
+  background: rgba(244, 162, 97, 0.15);
+  box-shadow: inset 0 0 8px rgba(244, 162, 97, 0.3), 0 0 16px rgba(244, 162, 97, 0.4);
+}}
+
+.indicator button.pressed {{
+  background: rgba(76, 201, 240, 0.2);
+  box-shadow: 0 0 10px rgba(76, 201, 240, 0.5);
+}}
+
+/* ---------- MOBILE ---------- */
+@media (max-width: 700px) {{
+  .main {{
+    flex-direction: column;
+  }}
+
+  .left, .center {{
+    width: 100%;
+    align-items: center;
+  }}
+
+  .steer, .motor {{
+    justify-content: center;
+  }}
 }}
 </style>
 </head>
@@ -173,35 +249,39 @@ button:active {{
 <body>
 <div class="app">
 
-  <!-- TOP CONTROLS -->
   <div class="top">
     <button id="btn_{MPCKeys.LIGHT}">LIGHT</button>
     <button id="btn_{MPCKeys.HORN}">HORN</button>
   </div>
 
-  <!-- MAIN CONTROLS -->
   <div class="main">
 
-    <div class="column">
-
-      <!-- INDICATOR -->
-      <div class="indicators">
+    <!-- STEERING -->
+    <div class="panel left">
+      <div class="indicator">
         <button id="btn_{MPCKeys.IND_L}">◀</button>
         <button id="btn_{MPCKeys.IND_LR}">◀▶</button>
         <button id="btn_{MPCKeys.IND_R}">▶</button>
       </div>
-      <!-- LEFT PAD -->
-      <div class="pad">
-        <button id="btn_{MPCKeys.LFT}" class="big steer">←</button>
-        <button id="btn_{MPCKeys.RGT}" class="big steer">→</button>
+
+      <div class="steer">
+        <button id="btn_{MPCKeys.LFT}" class="big">◀</button>
+        <button id="btn_{MPCKeys.RGT}" class="big">▶</button>
       </div>
     </div>
 
-    <!-- RIGHT PAD -->
-    <div class="column">
-      <div class="pad">
-        <button id="btn_{MPCKeys.FWD}" class="big motor-fwd">▲</button>
-        <button id="btn_{MPCKeys.BWD}" class="big motor-back">▼</button>
+    <!-- CENTER -->
+    <div class="panel center">
+      <div class="buttons">
+        <button id="btn_{MPCKeys.LB1}" class="circle">B1</button>
+        <button id="btn_{MPCKeys.LB2}" class="circle">B2</button>
+        <button id="btn_{MPCKeys.LB3}" class="circle">B3</button>
+        <button id="btn_{MPCKeys.LB4}" class="circle">B4</button>
+      </div>
+
+      <div class="motor">
+        <button id="btn_{MPCKeys.FWD}">▲</button>
+        <button id="btn_{MPCKeys.BWD}">▼</button>
       </div>
     </div>
 
@@ -210,39 +290,28 @@ button:active {{
 
 <script>
 let ws = new WebSocket("ws://192.168.4.1/ws");
-const KEYS = {{
-  LFT: "{MPCKeys.LFT}",
-  RGT: "{MPCKeys.RGT}",
-  FWD: "{MPCKeys.FWD}",
-  BWD: "{MPCKeys.BWD}",
-  IND_L: "{MPCKeys.IND_L}",
-  IND_R: "{MPCKeys.IND_R}",
-  IND_LR: "{MPCKeys.IND_LR}",
-  LIGHT: "{MPCKeys.LIGHT}",
-  HORN: "{MPCKeys.HORN}",
-}};
 
 function send(m){{ if(ws.readyState===1) ws.send(m); }}
 
 function bind(id, key){{
   let b=document.getElementById(id);
-  b.ontouchstart=e=>{{e.preventDefault();send(key + ":pressed");}}
-  b.ontouchend=e=>{{e.preventDefault();if(key)send(key + ":released");}}
-  b.onmousedown=()=>send(key + ":pressed");
-  b.onmouseup=()=>{{if(key)send(key + ":released");}}
-  b.onmouseleave=()=>{{if(key)send(key + ":released");}}
+  b.ontouchstart=e=>{{e.preventDefault();b.classList.add("pressed");send(key+":pressed");}}
+  b.ontouchend=e=>{{e.preventDefault();b.classList.remove("pressed");send(key+":released");}}
+  b.onmousedown=()=>{{b.classList.add("pressed");send(key+":pressed");}}
+  b.onmouseup=()=>{{b.classList.remove("pressed");send(key+":released");}}
+  b.onmouseleave=()=>{{b.classList.remove("pressed");send(key+":released");}}
 }}
 
-bind("btn_" + KEYS.LFT, KEYS.LFT);
-bind("btn_" + KEYS.RGT, KEYS.RGT);
-bind("btn_" + KEYS.FWD, KEYS.FWD);
-bind("btn_" + KEYS.BWD, KEYS.BWD);
-bind("btn_" + KEYS.LIGHT, KEYS.LIGHT);
-bind("btn_" + KEYS.HORN, KEYS.HORN);
-bind("btn_" + KEYS.IND_L, KEYS.IND_L);
-bind("btn_" + KEYS.IND_R, KEYS.IND_R);
-bind("btn_" + KEYS.IND_LR, KEYS.IND_LR);
+[
+ ["{MPCKeys.LFT}","{MPCKeys.LFT}"],["{MPCKeys.RGT}","{MPCKeys.RGT}"],
+ ["{MPCKeys.FWD}","{MPCKeys.FWD}"],["{MPCKeys.BWD}","{MPCKeys.BWD}"],
+ ["{MPCKeys.LIGHT}","{MPCKeys.LIGHT}"],["{MPCKeys.HORN}","{MPCKeys.HORN}"],
+ ["{MPCKeys.IND_L}","{MPCKeys.IND_L}"],["{MPCKeys.IND_R}","{MPCKeys.IND_R}"],["{MPCKeys.IND_LR}","{MPCKeys.IND_LR}"],
+ ["{MPCKeys.LB1}","{MPCKeys.LB1}"],["{MPCKeys.LB2}","{MPCKeys.LB2}"],
+ ["{MPCKeys.LB3}","{MPCKeys.LB3}"],["{MPCKeys.LB4}","{MPCKeys.LB4}"]
+].forEach(([id,key])=>bind("btn_"+id,key));
 </script>
+
 </body>
 </html>
 """
